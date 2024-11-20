@@ -49,4 +49,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }}
             docker stop kiennd-app || true
             docker rm kiennd-app || true
-            docker run -d --name kiennd-app -p 3002:3000 ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }}
+            docker run -d --name kiennd-app -p 3003:3000 ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }}
