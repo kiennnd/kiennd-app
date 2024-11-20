@@ -1,0 +1,52 @@
+name: Docker Build and Deploy
+
+on:
+  push:
+    tags:
+      - 'prod_v*'  # Match tags with prefix `prod_v`
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Extract version from tag
+      - name: Extract version
+        id: extract_version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/prod_}" >> $GITHUB_ENV
+
+      # Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Build the Docker image
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }} .
+
+      # Push the Docker image to Docker Hub
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }}
+
+      # SSH into the server and deploy the Docker image
+      - name: Deploy on Server
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_PRIVATE_KEY }}
+          port: 22
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }}
+            docker stop kiennd-app || true
+            docker rm kiennd-app || true
+            docker run -d --name kiennd-app -p 3002:3000 ${{ secrets.DOCKER_USERNAME }}/kiennd-app:${{ env.VERSION }}
